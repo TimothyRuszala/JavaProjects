@@ -6,8 +6,8 @@ https://algs4.cs.princeton.edu/code/
 
 Even if you don't run the programs, I hope this code will give you a notion of the breadth of my Java programming experience.
 
-## Thanks!
-### -Tim
+**Thanks!**
+**-Tim**
 
 
 
