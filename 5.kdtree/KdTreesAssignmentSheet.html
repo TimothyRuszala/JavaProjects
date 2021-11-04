@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<!-- saved from url=(0087)https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/index.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>
+COS 226 
+Programming Assignment 5: Kd-Trees
+</title><style>
+            .flipX video::-webkit-media-text-track-display {
+                transform: matrix(-1, 0, 0, 1, 0, 0) !important;
+            }
+            .flipXY video::-webkit-media-text-track-display {
+                transform: matrix(-1, 0, 0, -1, 0, 0) !important;
+            }
+            .flipXYX video::-webkit-media-text-track-display {
+                transform: matrix(1, 0, 0, -1, 0, 0) !important;
+            }</style></head>
+
+<body bgcolor="#FFFFFF">
+<table width="100%" border="0">
+<tbody><tr align="LEFT" valign="BOTTOM">
+<td><strong>COS 226</strong><br><br>
+<strong><font size="+2">
+Kd-Trees
+</font></strong></td>
+ <td align="RIGHT" valign="BOTTOM">
+ <strong>Programming Assignment</strong><br><br>
+ <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/checklist.html">checklist</a><br>
+ </td></tr></tbody></table>
+<hr>
+
+<p>
+Create a symbol-table data type whose keys are two-dimensional points.
+Use a <em>2d-tree</em> to support
+efficient <em>range search</em> (find all of the points contained
+in a query rectangle) and <em>nearest-neighbor search</em> (find a
+closest point to a query point).
+2d-trees have numerous applications, ranging from classifying astronomical objects
+and computer animation to speeding up neural networks and data mining.
+
+</p><p>
+</p><center>
+<img src="./KdTreesAssignmentSheet_files/kdtree-ops.png" width="600" alt="Range search and k-nearest neighbor">
+</center>
+
+<p><br><b>Geometric primitives.</b>
+To get started, use the following geometric primitives for points and
+axis-aligned rectangles in the plane.
+
+</p><p>
+</p><center>
+<img src="./KdTreesAssignmentSheet_files/RectHV.png" width="450" alt="Geometric primitives">
+</center>
+
+<ul>
+<p></p><li>
+The immutable data type <a href="http://algs4.cs.princeton.edu/code/javadoc/edu/princeton/cs/algs4/Point2D.html">Point2D</a>
+(part of <code>algs4.jar</code>) represents points in the plane.
+Here is the subset of its API that you may use:
+
+<blockquote>
+<pre><b>public class Point2D implements Comparable&lt;Point2D&gt; {</b>
+<b>   public Point2D(double x, double y)              </b><font color="gray">// construct the point (x, y)</font>
+<b>   public  double x()                              </b><font color="gray">// x-coordinate</font> 
+<b>   public  double y()                              </b><font color="gray">// y-coordinate</font> 
+<b>   public  double distanceSquaredTo(Point2D that)  </b><font color="gray">// square of Euclidean distance between two points</font> 
+<b>   public     int compareTo(Point2D that)          </b><font color="gray">// for use in an ordered symbol table</font> 
+<b>   public boolean equals(Object that)              </b><font color="gray">// does this point equal that object?</font> 
+<b>   public  String toString()                       </b><font color="gray">// string representation</font> 
+<b>}</b>
+</pre>
+</blockquote>
+
+<p></p></li><li>
+The immutable data type <a href="http://algs4.cs.princeton.edu/code/javadoc/edu/princeton/cs/algs4/RectHV.html">RectHV</a>
+(part of <code>algs4.jar</code>) represents axis-aligned rectanges.
+Here is the subset of its API that you may use:
+
+<blockquote>
+<pre><b>public class RectHV {</b>
+<b>   public    RectHV(double xmin, double ymin,      </b><font color="gray">// construct the rectangle [xmin, xmax] x [ymin, ymax]</font> 
+<b>                    double xmax, double ymax)      </b>
+<b>   public  double xmin()                           </b><font color="gray">// minimum x-coordinate of rectangle</font> 
+<b>   public  double ymin()                           </b><font color="gray">// minimum y-coordinate of rectangle</font> 
+<b>   public  double xmax()                           </b><font color="gray">// maximum x-coordinate of rectangle</font> 
+<b>   public  double ymax()                           </b><font color="gray">// maximum y-coordinate of rectangle</font> 
+<b>   public boolean contains(Point2D p)              </b><font color="gray">// does this rectangle contain the point p (either inside or on boundary)?</font> 
+<b>   public boolean intersects(RectHV that)          </b><font color="gray">// does this rectangle intersect that rectangle (at one or more points)?</font> 
+<b>   public  double distanceSquaredTo(Point2D p)     </b><font color="gray">// square of Euclidean distance from point p to closest point in rectangle</font> 
+<b>   public boolean equals(Object that)              </b><font color="gray">// does this rectangle equal that object?</font> 
+<b>   public  String toString()                       </b><font color="gray">// string representation</font> 
+<b>}</b>
+</pre>
+</blockquote>
+
+</li></ul>
+
+Do not modify these data types.
+
+<p><b>Brute-force implementation.</b>
+Write a mutable data type <code>PointST.java</code> that represents a symbol table whose
+keys are two-dimensional points, by implementing the following API:
+
+</p><blockquote>
+<pre><b>public class PointST&lt;Value&gt; {</b>
+<b>   public         PointST()                             </b><font color="gray">// construct an empty symbol table of points</font> 
+<b>   public           boolean isEmpty()                   </b><font color="gray">// is the symbol table empty?</font> 
+<b>   public               int size()                      </b><font color="gray">// number of points</font> 
+<b>   public              void put(Point2D p, Value val)   </b><font color="gray">// associate the value val with point p</font>
+<b>   public             Value get(Point2D p)              </b><font color="gray">// value associated with point p</font> 
+<b>   public           boolean contains(Point2D p)         </b><font color="gray">// does the symbol table contain point p?</font> 
+<b>   public Iterable&lt;Point2D&gt; points()                    </b><font color="gray">// all points in the symbol table</font> 
+<b>   public Iterable&lt;Point2D&gt; range(RectHV rect)          </b><font color="gray">// all points that are inside the rectangle (or on the boundary)</font> 
+<b>   public           Point2D nearest(Point2D p)          </b><font color="gray">// a nearest neighbor of point p; null if the symbol table is empty</font> 
+
+<b>   public static void main(String[] args)               </b><font color="gray">// unit testing (required)</font>
+<b>}</b>
+</pre>
+</blockquote>
+
+<p><em>Implementation requirements.&nbsp;</em>
+You must use either 
+<a href="http://algs4.cs.princeton.edu/code/javadoc/edu/princeton/cs/algs4/RedBlackBST.html"><code>RedBlackBST</code></a> or
+<a href="https://docs.oracle.com/javase/8/docs/api/java/util/TreeMap.html"><code>java.util.TreeMap</code></a>;
+do not implement your own red–black BST.
+
+</p><p><em>Corner cases.&nbsp;</em>
+Throw a <code>java.lang.IllegalArgumentException</code> if any argument is <code>null</code>.
+
+</p><p><em>Unit testing.&nbsp;</em>
+Your <code>main()</code> method must call each public constructor and method directly and
+help verify that they work as prescribed (e.g., by printing results to standard output).
+
+</p><p>
+<em>Performance requirements.&nbsp;</em>
+In the worst case, your implementation must support <code>size()</code> in constant time;
+<code>put()</code>, <code>get()</code> and <code>contains()</code> in time proportional log <em>n</em>;
+and
+<code>points()</code>, <code>nearest()</code>, and <code>range()</code> in time proportional to <em>n</em>,
+where <em>n</em> is the number of points in the symbol table.
+
+</p><p><b>2d-tree implementation.</b>
+Write a mutable data type <code>KdTreeST.java</code> that uses a 2d-tree to 
+implement the same API (but renaming <code>PointST</code> to <code>KdTreeST</code>).
+A <em>2d-tree</em> is a generalization of a BST to two-dimensional keys.
+The idea is to build a BST with points in the nodes,
+using the <em>x</em>- and <em>y</em>-coordinates of the points
+as keys in strictly alternating sequence, starting with the <em>x</em>-coordinates.
+
+</p><ul>
+<p></p><li><em>Search and insert.</em> 
+The algorithms for search and insert are similar to those for
+BSTs, but at the root we use the <em>x</em>-coordinate
+(if the point to be inserted has a smaller <em>x</em>-coordinate
+than the point at the root, go left; otherwise go right);
+then at the next level, we use the <em>y</em>-coordinate
+(if the point to be inserted has a smaller <em>y</em>-coordinate
+than the point in the node, go left; otherwise go right);
+then at the next level the <em>x</em>-coordinate, and so forth.
+</li></ul>
+
+<p>
+
+</p><blockquote>
+<table border="0" cellpadding="2" cellspacing="0">
+
+<tbody><tr>
+<td><center>&nbsp;&nbsp;<img src="./KdTreesAssignmentSheet_files/kdtree1.png" width="175" alt="Insert (0.7, 0.2)">&nbsp;&nbsp;</center>
+<br><center><font size="-1"><em>insert (0.7, 0.2)</em></font></center>
+</td><td><center>&nbsp;&nbsp;<img src="./KdTreesAssignmentSheet_files/kdtree2.png" width="175" alt="Insert (0.5, 0.4)">&nbsp;&nbsp;</center>
+<br><center><font size="-1"><em>insert (0.5, 0.4)</em></font></center>
+</td><td><center>&nbsp;&nbsp;<img src="./KdTreesAssignmentSheet_files/kdtree3.png" width="175" alt="Insert (0.2, 0.3)">&nbsp;&nbsp;</center>
+<br><center><font size="-1"><em>insert (0.2, 0.3)</em></font></center>
+</td><td><center>&nbsp;&nbsp;<img src="./KdTreesAssignmentSheet_files/kdtree4.png" width="175" alt="Insert (0.4, 0.7)">&nbsp;&nbsp;</center>
+<br><center><font size="-1"><em>insert (0.4, 0.7)</em></font></center>
+</td><td><center>&nbsp;&nbsp;<img src="./KdTreesAssignmentSheet_files/kdtree5.png" width="175" alt="Insert (0.9, 0.6)">&nbsp;&nbsp;</center>
+<br><center><font size="-1"><em>insert (0.9, 0.6)</em></font></center>
+<!-- <td><center><IMG SRC="kdtree6.png" alt = "Insert (0.8, 0.1)"></center> -->
+<!-- <br><center><font size = -1><em>insert (0.8, 0.1)</em></font></center> -->
+</td></tr>
+
+
+<tr>
+<td><center><img src="./KdTreesAssignmentSheet_files/kdtree-insert1.png" width="175" alt="Insert (0.7, 0.2)"></center>
+</td><td><center><img src="./KdTreesAssignmentSheet_files/kdtree-insert2.png" width="175" alt="Insert (0.5, 0.4)"></center>
+</td><td><center><img src="./KdTreesAssignmentSheet_files/kdtree-insert3.png" width="175" alt="Insert (0.2, 0.3)"></center>
+</td><td><center><img src="./KdTreesAssignmentSheet_files/kdtree-insert4.png" width="175" alt="Insert (0.4, 0.7)"></center>
+</td><td><center><img src="./KdTreesAssignmentSheet_files/kdtree-insert5.png" width="175" alt="Insert (0.9, 0.6)"></center>
+<!-- <td><center><IMG SRC="kdtree-insert6.png" width = 175 alt = "Insert (0.8, 0.1)"></center> -->
+</td></tr>
+
+
+</tbody></table>
+</blockquote>
+
+<ul>
+<p></p><li><em>Level-order traversal.</em> 
+The <code>points()</code> method must return the points in <em>level order</em>:
+first the root, then all children of the root (from left/bottom to right/top),
+then all grandchildren of the root (from left to right), and so forth.
+The level-order traversal of the above 2d-tree is 
+(0.7, 0.2), (0.5, 0.4), (0.9, 0.6), (0.2, 0.3), (0.4, 0.7).
+This method is mostly useful to assist you (when debugging) and
+us (when grading).
+
+</li></ul>
+
+
+<p>
+The prime advantage of a 2d-tree over a BST
+is that it supports efficient
+implementation of <em>range search</em> and <em>nearest-neighbor search</em>.
+Each node corresponds to an axis-aligned rectangle,
+which encloses all of the points in its subtree.
+The root corresponds to the entire plane
+[(−∞, −∞), (+∞, +∞ )]; the left and right children
+of the root correspond to the two rectangles
+split by the <em>x</em>-coordinate of the point at the root; and so forth.
+
+</p><ul>
+
+<p></p><li><em>Range search.</em>
+To find all points contained in a given query rectangle, start at the root
+and recursively search for points in <em>both</em> subtrees using the following
+<em>pruning rule</em>:  if the query rectangle does not intersect the rectangle 
+corresponding to a node, there is no need to explore that node (or its subtrees).
+That is, search a subtree only if it might contain a point contained in
+the query rectangle.
+
+<p></p></li><li><em>Nearest-neighbor search.</em>
+To find a closest point to a given query point, start at the root
+and recursively search in <em>both</em> subtrees using the following <em>pruning rule</em>:
+if the closest point discovered so far is closer than the distance 
+between the query point and the rectangle corresponding to a node,
+there is no need to explore that node (or its subtrees).
+That is, search a node only if it might contain a point
+that is closer than the best one found so far.
+The effectiveness of the pruning rule depends on quickly finding a 
+nearby point. To do this, organize the recursive method so that when 
+there are two possible subtrees to go down, you choose first
+<em>the subtree
+that is on the same side of the splitting line as the query point</em>;
+the closest point found while exploring the first
+subtree may enable pruning of the second subtree.
+
+<!--
+<p><li><em>k nearest-neighbor search.</em>
+Similar to finding the nearest-neighbor but prune if the <em>k</em>th closest point
+discovered so far is closer than the distance between the query point
+and the rectangle corresponding to a node.
+-->
+
+</li></ul>
+
+
+<p><b>Clients.</b>&nbsp;
+You may use the following two interactive client programs to test and debug your code.
+</p><ul>
+
+<!--
+<p><li>
+<a href = "testing/KdTreeVisualizer.java">KdTreeVisualizer.java</a>
+computes and draws the 2d-tree that results from the sequence of points clicked by the
+user in the standard drawing window.
+-->
+
+<p></p><li>
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/RangeSearchVisualizer.java">RangeSearchVisualizer.java</a>
+reads a sequence of points from a file (specified as a command-line argument) and inserts those points
+into a 2d-tree. Then, it performs range searches on the axis-aligned rectangles dragged
+by the user in the standard drawing window.
+
+<p></p></li><li>
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/NearestNeighborVisualizer.java">NearestNeighborVisualizer.java</a>
+reads a sequence of points from a file (specified as a command-line argument) and inserts those points
+into a 2d-tree. Then, it performs nearest-neighbor queries on the 
+point corresponding
+to the location of the mouse in the standard drawing window.
+
+</li></ul>
+
+<p><b>Analysis of running time.</b>
+Analyze the effectiveness of your approach to this problem by estimating how many
+many nearest-neighbor searches per second that each of your two implementations can perform
+for
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/input100K.txt">input100K.txt</a>
+(100,000 points) and
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/input1M.txt">input1M.txt</a>
+(1 million points),
+where the query points are uniformly random points in the unit square.
+(Count only the time for the nearest-neighbor searches, not the time to read and insert the points.)
+
+
+</p><p><b>Challenge for the bored.</b>&nbsp; Add the following method
+to <code>KdTreeST.java</code>:
+
+</p><blockquote>
+<pre><b>public Iterable&lt;Point2D&gt; nearest(Point2D p, int k)</b>
+</pre>
+</blockquote>
+
+This method returns the <em>k</em> points that are closest to the query point
+(in any order); return all <em>n</em> points in the data
+structure if <em>n</em> ≤ <em>k</em>.
+It must do this in an efficient manner, i.e. using the technique from kd-tree nearest
+neighbor search, not from brute force.
+Once you’ve completed this class, you’ll be able to run 
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/BoidSimulator.java">BoidSimulator.java</a>
+(which depends upon both
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/Boid.java">Boid.java</a> and
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/Hawk.java">Hawk.java</a>).
+Behold their flocking majesty.
+
+<!--
+<p><b>Challenge for the bored.</b>&nbsp; Make an interesting improvement to the boid simulator.
+This can involve interactivity, improvement of flocking behavior, n or out, 
+creation of a better physics model (e.g. right now the hawk has a fixed amount of directional thrust).
+Josh is the only one who will provide support for this optional challenge.
+Particularly good submissions will be worth up to 2 bonus points (on top of the 1 point for extra credit).
+-->
+
+
+<p><b>Submission.</b>&nbsp;
+Submit only  <code>PointST.java</code> and <code>KdTreeST.java</code>.
+We will supply <code>algs4.jar</code>.
+Your may not call library functions except those in
+those in <code>java.lang</code>, <code>java.util</code>, and <code>algs4.jar</code>.
+Finally, submit a <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/kdtree/testing/readme.txt">
+readme.txt</a> file and answer the questions.
+
+
+
+
+</p><p>
+</p><address><small>This assignment was developed by Kevin Wayne, with boid simulation by Josh Hug.
+</small></address>
+
+
+</body></html>

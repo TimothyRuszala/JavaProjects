@@ -1,0 +1,480 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<!-- saved from url=(0093)https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/index.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+
+<title>
+Programming Assignment: Autocomplete Me
+</title>
+
+<style>
+            .flipX video::-webkit-media-text-track-display {
+                transform: matrix(-1, 0, 0, 1, 0, 0) !important;
+            }
+            .flipXY video::-webkit-media-text-track-display {
+                transform: matrix(-1, 0, 0, -1, 0, 0) !important;
+            }
+            .flipXYX video::-webkit-media-text-track-display {
+                transform: matrix(1, 0, 0, -1, 0, 0) !important;
+            }</style></head>
+
+<body bgcolor="#FFFFFF">
+<table width="100%" border="0">
+<tbody><tr align="LEFT" valign="BOTTOM">
+<td><strong>COS 226</strong><br><br>
+<strong><font size="+2">
+Autocomplete Me
+</font></strong></td>
+ <td align="RIGHT" valign="BOTTOM">
+ <strong>Programming Assignment</strong><br><br>
+ <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/checklist.html">checklist</a><br>
+ </td></tr></tbody></table>
+<hr>
+<em>Partnering is permitted on this assignment.
+Before partnering, read the <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments.php#collaboration-policy">
+COS 226 collaboration policy</a>.
+Choose a partner whose skill level is close to your own.</em>
+<!--
+In particular you are permitted to work with one classmate,
+<font color=red>as long as both students have a passing grade on a previous assignment.</font> 
+-->
+<br>
+
+
+<p><br>
+Write a program to implement <em>autocomplete</em> for a given set of <em>n</em>
+<em>terms</em>, where a term is a query string and an associated non-negative weight.
+That is, given a prefix, find all queries that start with the given prefix,
+in descending order of weight.
+
+</p><p>
+Autocomplete is pervasive in modern applications.
+As the user types, the program predicts the complete <em>query</em> (typically a word
+or phrase) that the user intends to type.
+Autocomplete is most effective when there are a limited number of likely queries.
+For example, the <a href="http://www.imdb.com/">Internet Movie Database</a> uses it to display
+the names of movies as the user types; search engines use it to display suggestions as
+the user enters web search queries; cell phones use it to speed up text input.
+<!-- ; Mac OS X Spotlight uses uses it to help the user locate documents
+as they type. -->
+</p><p>
+
+</p><center>
+<img src="./AutocompleteAssignment_files/autocomplete-imdb.png" width="340" alt="IMDB search" title="IMDB search" style="border: 10px solid #d6d6d6">
+&nbsp;&nbsp;
+<img src="./AutocompleteAssignment_files/autocomplete-google.png" width="320" alt="Google search" title="Google search" style="border: 10px solid #d6d6d6">
+&nbsp;&nbsp;
+<img src="./AutocompleteAssignment_files/autocomplete-phone.png" width="175" alt="Phone keyboard suggestions" title="Phone keyboard suggestions" style="border: 10px solid #d6d6d6">
+<!-- <IMG SRC="autocomplete-spotlight.png" width = "349" height = "416" alt = "Spotlight search" title = "Spotlight search" border="10" style="border: 10px solid #d6d6d6"> -->
+</center>
+
+<p><br>
+In these examples, the application predicts how likely it is that the user is typing each query
+and presents to the user a list of the top-matching queries, in descending order of weight.
+These weights are determined by historical data, such as box office revenue for movies,
+frequencies of search queries from other Google users, or the typing history of a cell phone user.
+For the purposes of this assignment, you will have access to a set of
+all possible queries and associated weights (and these queries and weights will not change).
+
+</p><p>
+The performance of autocomplete functionality is critical in many systems.
+For example, consider a search engine which runs an autocomplete application on a server farm.
+According to one study, the application has only about 50<em>ms</em> to return
+a list of suggestions for it to be useful to the user.
+Moreover, in principle, it must perform this computation
+<em>for every keystroke typed into the search bar</em> and 
+<em>for every user</em>! 
+
+</p><p>
+In this assignment, you will implement autocomplete by <em>sorting</em> the terms by query string;
+(using the sorts introduced in lecture)
+<em>binary searching</em> to find all query strings that start with a given prefix;
+and <em>sorting</em> the matching terms by weight.
+
+</p><p>
+<b>Part 1: autocomplete term.</b>
+Write an immutable data type <code>Term.java</code> that
+represents an autocomplete term—a query string and an associated integer weight.
+You must implement the following API, which supports comparing terms by three different orders:
+<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html#compareTo-java.lang.String-">lexicographic order</a>
+by query string (the natural order);
+in descending order by weight (an alternate order);
+and lexicographic order
+by query string but using only the first <em>r</em> characters (a family of alternate orderings).
+The last order may seem a bit odd, but
+you will use it in <em>Part 3</em> to find all query strings that start with a given prefix (of length <em>r</em>).
+
+</p><blockquote>
+<pre><b>public class Term implements Comparable&lt;Term&gt; {</b>
+
+    <font color="gray">// Initializes a term with the given query string and weight.</font>
+    <b>public Term(String query, long weight)</b>
+
+    <font color="gray">// Compares the two terms in descending order by weight.</font>
+    <b>public static Comparator&lt;Term&gt; byReverseWeightOrder()</b>
+
+    <font color="gray">// Compares the two terms in lexicographic order but using only the first r characters of each query.</font>
+    <b>public static Comparator&lt;Term&gt; byPrefixOrder(int r)</b>
+
+    <font color="gray">// Compares the two terms in lexicographic order by query.</font>
+    <b>public int compareTo(Term that)</b>
+
+    <font color="gray">// Returns a string representation of this term in the following format:</font>
+    <font color="gray">// the weight, followed by a tab, followed by the query.</font>
+    <b>public String toString()</b>
+
+    <font color="gray">// unit testing (required)</font>
+ <b>   public static void main(String[] args)   </b>
+<b>}</b>
+</pre>
+</blockquote>
+
+<p><em>Corner cases.&nbsp;</em>
+Throw <code>java.lang.IllegalArgumentException</code> in the constructor if
+either <code>query</code> is <code>null</code> or <code>weight</code> is negative.
+Throw a <code>java.lang.IllegalArgumentException</code> 
+in <code>byPrefixOrder()</code> if <code>r</code> is negative.
+
+</p><p><em>Unit testing.&nbsp;</em>
+Your <code>main()</code> method must call each public constructor
+and method directly and help verify that they work as prescribed
+(e.g., by printing results to standard output).
+
+</p><p><em>Performance requirements.&nbsp;</em>
+The string comparison functions must take time proportional to the number of characters needed to
+resolve the comparison.
+
+</p><p>
+<b>Part 2: binary search.</b>
+When binary searching a sorted array that contains more than one key equal to the search key,
+the client may want to know the index of either the <em>first</em> or the <em>last</em> such key.
+Accordingly, implement the following API:
+
+</p><pre><blockquote><b>public class BinarySearchDeluxe {</b>
+
+    <font color="gray">// Returns the index of the first key in a[] that equals the search key, or -1 if no such key.</font>
+    <b>public static &lt;Key&gt; int firstIndexOf(Key[] a, Key key, Comparator&lt;Key&gt; comparator)</b>
+
+    <font color="gray">// Returns the index of the last key in a[] that equals the search key, or -1 if no such key.</font>
+    <b>public static &lt;Key&gt; int lastIndexOf(Key[] a, Key key, Comparator&lt;Key&gt; comparator)</b>
+
+<font color="gray">    // unit testing (required)</font>
+<b>    public static void main(String[] args)   </b>
+<b>}</b>
+</blockquote></pre>
+
+<p><em>Corner cases.&nbsp;</em>
+Throw a <code>java.lang.IllegalArgumentException</code> if any argument to
+either <code>firstIndexOf()</code> or <code>lastIndexOf()</code> is <code>null</code>.
+Assume that the argument array is in sorted order
+(with respect to the supplied comparator).
+
+</p><p><em>Unit testing.&nbsp;</em>
+Your <code>main()</code> method must call each public method directly and
+help verify that they work as prescribed (e.g., by printing results to standard output).
+
+</p><p><em>Performance requirements.&nbsp;</em>
+The <code>firstIndexOf()</code> and <code>lastIndexOf()</code> methods must
+make at most 1 + ⌈log<sub>2</sub> <em>n</em>⌉ compares in the worst case,
+where <em>n</em> is the length of the array.
+In this context, a <em>compare</em> is one call to <code>comparator.compare()</code>.
+
+<!--
+<pre><blockquote><b>public class BinarySearchDeluxe {</b>
+<b>}</b>
+</blockquote></pre>
+</font>
+-->
+
+</p><p>
+<b>Part 3: autocomplete.</b>
+In this part, you will implement a data type that provides autocomplete functionality
+for a given set of string and weights, using <code>Term</code> and <code>BinarySearchDeluxe</code>.
+To do so, <em>sort</em> the terms in lexicographic order;
+use <em>binary search</em> to find the all query strings that start with a given prefix;
+and <em>sort</em> the matching terms in descending order by weight.
+Organize your program by creating an immutable data type <code>Autocomplete</code> with the following
+API:
+
+
+</p><pre><blockquote><b>public class Autocomplete {</b>
+
+    <font color="gray">// Initializes the data structure from the given array of terms.</font>
+    <b>public Autocomplete(Term[] terms)</b>
+
+    <font color="gray">// Returns all terms that start with the given prefix, in descending order of weight.</font>
+    <b>public Term[] allMatches(String prefix)</b>
+
+    <font color="gray">// Returns the number of terms that start with the given prefix.</font>
+    <b>public int numberOfMatches(String prefix)</b>
+
+    <font color="gray">// unit testing (required)</font>
+ <b>   public static void main(String[] args)   </b>
+<b>}</b>
+</blockquote></pre>
+
+<p><em>Corner cases.&nbsp;</em>
+Throw a <code>java.lang.IllegalArgumentException</code> in the constructor if either
+its argument array is <code>null</code> or any entry is <code>null</code>.
+Throw a <code>java.lang.IllegalArgumentException</code> in 
+<code>allMatches()</code> and <code>numberOfMatches()</code> if its argument is <code>null</code>.
+
+</p><p><em>Unit testing.&nbsp;</em>
+Your <code>main()</code> method call each public constructor
+and method directly and help verify that they work as prescribed
+(e.g., by printing results to standard output).
+
+</p><p><em>Performance requirements.&nbsp;</em> The constructor must make proportional to
+<em>n</em> log <em>n</em> compares (or better) in the worst case, where <em>n</em>
+is the number of terms.
+The <code>allMatches()</code> method must make proportional to
+log <em>n</em> + <em>m</em> log <em>m</em> compares
+(or better) in the worst case, where <em>m</em> is the number of matching terms.
+The <code>numberOfMatches()</code> method must make proportional to
+log <em>n</em> compares (or better) in the worst case.
+In this context, a <em>compare</em> is one call to any of the <code>compare()</code> or <code>compareTo()</code>
+methods defined in <code>Term</code>.
+<!-- Any sort must be linearithmic. This seems redundant with other performance requirements. -->
+
+</p><p>
+<b>Input format.</b>
+We provide a number of sample input files for testing.
+Each file consists of an integer <em>n</em> followed by <em>n</em> pairs of 
+query strings and non-negative weights.
+There is one pair per line, with the weight and string separated by a tab.
+A weight can be any integer between 0 and 2<sup>63</sup> − 1.
+A query string can be any sequence of Unicode characters,
+including spaces (but not newlines).
+<!-- The files are encoded using UTF-8, for compatibility with <code>stdlib.jar</code>. -->
+
+</p><ul>
+<p></p><li>
+The file 
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/testing/wiktionary.txt">wiktionary.txt</a>
+contains the 10,000 most common words in Project Gutenberg, with weights proportional to their frequencies.
+<p></p></li><li>
+The file
+<a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/testing/cities.txt">cities.txt</a>
+contains 93,827 cities, with weights equal to their populations.
+</li></ul>
+
+<blockquote>
+<table cellspacing="0" cellpadding="0" border="0" bgcolor="#FFFFFF">
+
+<tbody><tr>
+<td valign="top">
+<blockquote>
+<pre>% <b>more wiktionary.txt</b>     
+10000
+   5627187200	the
+   3395006400	of
+   2994418400	and
+   2595609600	to
+   1742063600	in
+   1176479700	i
+   1107331800	that
+   1007824500	was
+    879975500	his
+                ...
+       392323	calves
+</pre>
+</blockquote></td>
+
+<td valign="top">
+<pre>% <b>more cities.txt</b>
+93827
+      14608512	Shanghai, China
+      13076300	Buenos Aires, Argentina
+      12691836	Mumbai, India
+      12294193	Mexico City, Distrito Federal, Mexico
+      11624219	Karachi, Pakistan
+      11174257	İstanbul, Turkey
+      10927986	Delhi, India
+      10444527	Manila, Philippines
+      10381222	Moscow, Russia
+                ...
+             2	Al Khāniq, Yemen
+</pre>
+</td>
+
+</tr></tbody></table>
+</blockquote>
+
+Below is a sample client that takes the name of an input file and an integer <em>k</em>
+as command-line arguments.
+It reads the data from the file; then it repeatedly reads autocomplete
+queries from standard input, and prints the
+top <em>k</em> matching terms in descending order of weight.
+
+<blockquote>
+<pre>public static void main(String[] args) {
+
+    <font color="gray">// read in the terms from a file</font>
+    String filename = args[0];
+    In in = new In(filename);
+    int n = in.readInt();
+    Term[] terms = new Term[n];
+    for (int i = 0; i &lt; n; i++) {
+        long weight = in.readLong();           <font color="gray">// read the next weight</font>
+        in.readChar();                         <font color="gray">// scan past the tab</font>
+        String query = in.readLine();          <font color="gray">// read the next query</font>
+        terms[i] = new Term(query, weight);    <font color="gray">// construct the term</font>
+    }
+
+    <font color="gray">// read in queries from standard input and print out the top k matching terms</font>
+    int k = Integer.parseInt(args[1]);
+    Autocomplete autocomplete = new Autocomplete(terms);
+    while (StdIn.hasNextLine()) {
+        String prefix = StdIn.readLine();
+        Term[] results = autocomplete.allMatches(prefix);
+        StdOut.printf("%d matches\n", autocomplete.numberOfMatches(prefix));
+        for (int i = 0; i &lt; Math.min(k, results.length); i++)
+            StdOut.println(results[i]);
+    }
+}
+</pre>
+</blockquote>
+
+
+Here are a few sample executions:
+
+<blockquote>
+<table cellspacing="0" cellpadding="0" border="0" bgcolor="#FFFFFF">
+<tbody><tr>
+<td valign="top">
+<pre>% <b>java-algs4 Autocomplete wiktionary.txt 5</b>
+<b>auto</b>
+2 matches
+        619695	automobile
+        424997	automatic
+<b>comp</b>
+52 matches
+      13315900	company
+       7803980	complete
+       6038490	companion
+       5205030	completely
+       4481770	comply
+<b>the</b>
+38 matches
+    5627187200	the
+     334039800	they
+     282026500	their
+     250991700	them
+     196120000	there
+</pre>
+</td>
+<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td valign="top">
+<pre>% <b>java-algs4 Autocomplete cities.txt 7</b>
+<b>M</b>
+7211 matches
+    12691836  Mumbai, India
+    12294193  Mexico City, Distrito Federal, Mexico
+    10444527  Manila, Philippines
+    10381222  Moscow, Russia
+     3730206  Melbourne, Victoria, Australia
+     3268513  Montréal, Quebec, Canada
+     3255944  Madrid, Spain
+<b>Al M</b>
+39 matches
+      431052  Al Maḩallah al Kubrá, Egypt
+      420195  Al Manşūrah, Egypt
+      290802  Al Mubarraz, Saudi Arabia
+      258132  Al Mukallā, Yemen
+      227150  Al Minyā, Egypt
+      128297  Al Manāqil, Sudan
+       99357  Al Maţarīyah, Egypt
+</pre>
+</td>
+</tr>
+</tbody></table>
+</blockquote>
+
+
+
+<p>
+<b>Interactive GUI (optional, but fun and no extra work).</b>
+Download and compile
+ <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/testing/AutocompleteGUI.java">AutocompleteGUI.java</a>.
+The program takes the name of a file and an integer <em>k</em> as command-line
+arguments and provides a GUI for the user to enter queries.
+It presents the top <em>k</em> matching terms in real time.
+When the user selects a term, the GUI opens up the results from a Google search
+for that term in a browser.
+
+</p><blockquote>
+<pre>% <b>java-algs4 AutocompleteGUI cities.txt 7</b>
+</pre>
+<img src="./AutocompleteAssignment_files/autocomplete-gui.png" width="700">
+</blockquote>
+
+<!--
+<p><br>
+<b>Extra credit 1.</b>
+This is an opportunity to earn extra credit and contribute to
+future offerings of this assignment.
+Create a real-world data (preferably large or huge) for which autocomplete would be appropriate
+and document it in your readme file (including a reference to the original data source).
+Below are a few possibilities.
+Note that some of the datasets are massive and you will need to filter them
+down to appropriate sizes and put them into our file format.
+
+<ul>
+
+<p><li> 
+<a href = "http://dumps.wikimedia.org/other/pagecounts-raw/">Wikipedia</a>: term = Wikipedia page,
+weight = number of hits per year.
+
+<p><li>
+<a href = "http://storage.googleapis.com/books/ngrams/books/datasetsv2.html">Google books Ngram Viewer</a>:
+term = <em>n</em>-gram, weight = frequency of occurrence in corpus of books.
+
+<p><li>
+<a href = "http://en.wiktionary.org/wiki/Wiktionary%3AFrequency_lists">Wiktionary</a>:
+term = word, weight = frequency of occurrence in corpus.
+Pick a language with a non-Latin alphabet such as Hebrew, Arabic, Russian, Greek, or Japanese.
+
+<p><li>
+<a href = "http://www.imdb.com/interfaces">The Internet Movie Database</a>:
+term = movie, weight = number of reviews or average rating.
+
+</ul>
+
+Be sure that your file is in the prescribed format (tab-separated and UTF-8 encoded).
+If your file is less than 50MB, submit it as usual;
+if it is larger, please contact your preceptor for submission instructions.
+
+<p>
+<b>Extra credit 2.</b>
+Improve <a href = "testing/AutocompleteGUI.java">AutcompleteGUI.java</a>
+in the following (or other) ways:
+<ul>
+<p><li> Improve the graphical layout (e.g., align search bar and suggestion box, allow search bar and suggestion box to
+expand to width of window).
+<p><li> Fix some of the known bugs, which are documented in the file.
+</ul>
+-->
+
+<p>
+<b>Deliverables.</b>
+Submit <code>Autocomplete.java</code>, <code>BinarySearchDeluxe.java</code>, and <code>Term.java</code>.
+Do not call any library functions other than those in <code>java.lang</code>,
+<code>java.util</code>,  and <code>algs4.jar</code>.
+Finally, submit a <a href="https://www.cs.princeton.edu/courses/archive/spr18/cos226/assignments/autocomplete/testing/readme.txt">readme.txt</a>
+file and answer the questions.
+
+
+
+
+
+</p><address><small>
+This assignment was developed by Matthew Drabick and Kevin Wayne.
+<br>Copyright © 2014.
+</small>
+</address>
+
+
+
+
+
+</body></html>
